@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-!f%a2qkpu#@to^v1hi%q7&!6ztt6nd#7nxm1u20hq9@pr@74&t
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = False
 
-ALLOWED_HOSTS = ["deploy0-oe5t.onrender.com","deploy0-production.up.railway.app",'localhost','127.0.0.1']
+ALLOWED_HOSTS = ["deploy1-jci0.onrender.com","deploy1-productions.up.railway.app",'localhost','127.0.0.1']
 
 
 # Application definition
@@ -120,8 +120,7 @@ USE_TZ = True
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
-
-CSRF_TRUSTED_ORIGINS = ['https://deploy0-oe5t.onrender.com','https://deploy0-production.up.railway.app']
+CSRF_TRUSTED_ORIGINS = ['https://deploy1-jci0.onrender.com','https://deploy1-productions.up.railway.app']
 ALLOW_ALL_CORS_ORIGINS=True
 
 STATIC_URL = 'static/'
