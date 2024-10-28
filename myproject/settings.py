@@ -125,7 +125,7 @@ CSRF_TRUSTED_ORIGINS = ['https://deploy0-oe5t.onrender.com','https://deploy0-pro
 ALLOW_ALL_CORS_ORIGINS=True
 
 STATIC_URL = 'static/'
-STATICFILES_DIRS=[os.path.join(BASE_DIR, 'static')]
+STATIC_ROOT= BASE_DIR / 'static'
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 AUTH_USER_MODEL = "chatapp.AuthUser"
