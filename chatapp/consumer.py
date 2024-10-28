@@ -13,7 +13,7 @@ class Mainsocket(AsyncWebsocketConsumer):
     
     async def connect(self):
         self.group_name="funchat"
-        print(self.group_name)
+
         await self.channel_layer.group_add(
             self.group_name,
             self.channel_name
@@ -74,7 +74,6 @@ class chatconsumer(AsyncWebsocketConsumer):
 
         self.group_room_name='chat_%s' % self.room_name
 
-        print(self.group_room_name)
         await self.channel_layer.group_add(
             self.group_room_name,
             self.channel_name

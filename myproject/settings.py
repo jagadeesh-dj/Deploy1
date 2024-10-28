@@ -79,13 +79,23 @@ WSGI_APPLICATION = 'myproject.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.sqlite3',
+#         'NAME': BASE_DIR / 'db.sqlite3',
+#     }
+# }
+# PGPASSWORD=EOKyBHmZWfNnbiXoQbLJPFJOLebxdfqi psql -h autorack.proxy.rlwy.net -U postgres -p 42050 -d railway
+DATABASES={
+    'default':{
+        'ENGINE':'django.db.backends.postgresql',
+        'NAME': 'railway',
+        'USER': 'postgres',
+        'PASSWORD':'EOKyBHmZWfNnbiXoQbLJPFJOLebxdfqi',
+        'HOST':'autorack.proxy.rlwy.net',
+        'PORT': '42050'
     }
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -149,17 +159,11 @@ ASGI_APPLICATION='myproject.asgi.application'
 
 
 
-# CHANNEL_LAYERS = {
-#     "default": {
-#         "BACKEND": "channels_redis.core.RedisChannelLayer",
-#         "CONFIG": {
-#             "hosts": [(os.environ.get("REDIS_URL", "redis://default:KOornoLgPVxQLbUyqbfHwYtNCxYwgkxn@junction.proxy.rlwy.net:42452"))],
-#         },
-#     },
-# }
-
 CHANNEL_LAYERS = {
     "default": {
-        "BACKEND": "channels.layers.InMemoryChannelLayer"
-    }
+        "BACKEND": "channels_redis.core.RedisChannelLayer",
+        "CONFIG": {
+            "hosts": ["redis://default:FibZtgHOiuJEUzxwOOkobLOcuaGaqnpG@autorack.proxy.rlwy.net:28433"],
+        },
+    },
 }

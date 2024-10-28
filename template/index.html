@@ -99,7 +99,7 @@
             let network=window.location.href
             
             if(network==='https://deploy1-jci0.onrender.com/'){
-                return 'deploy1-jci0.onrender.com'
+                return 'wss://deploy1-jci0.onrender.com'
             }
             else if(network==='https://deploy1-productions.up.railway.app/'){
                 return 'wss://deploy1-productions.up.railway.app'
@@ -257,14 +257,14 @@
                             if( data.sender == sender_id.getAttribute('value') ){
                                 document.querySelector('tbody').innerHTML += `<tr id="sender">
                                                                                 <td>
-                                                                                    ${data.file} <a href="media/${data.file}" download><i class="fa-regular fa-circle-down fa-lg" style="color: #0f0f0f;margin-left:5px;"></i></a>  <br>
+                                                                                    ${data.file}<br>
                                                                                     <small style='float:right;'>${currentdata.getHours()}:${currentdata.getMinutes()}</small>
                                                                                 </td>
                                                                             </tr>`
                             }else{
                                 document.querySelector('tbody').innerHTML += `<tr id="receiver">
                                                                                     <td>
-                                                                                        ${data.file}  <a href="media/${data.file}" download><i class="fa-regular fa-circle-down fa-lg" style="color: #0f0f0f;margin-left:5px;"></i></a> <br>
+                                                                                        ${data.file}  <a href="/media/${data.file}" download><i class="fa-regular fa-circle-down fa-lg" style="color: #0f0f0f;margin-left:5px;"></i></a> <br>
                                                                                         <small style='float:left;'>${currentdata.getHours()}:${currentdata.getMinutes()}</small>
 
                                                                                     </td>
@@ -328,7 +328,7 @@
                                 return `    
                                             <tr id="sender">
                                                 <td id="rows">
-                                                    ${item.data} <a href="media/${item.data}" download><i class="fa-regular fa-circle-down fa-lg" style="color: #0f0f0f;margin-left:5px;"></i></a> <br>
+                                                    ${item.data} <br>
                                                     <small style='float:right;'>${jsdatetime.getHours()}:${jsdatetime.getMinutes()}</small>
 
                                                 </td>
@@ -336,7 +336,7 @@
                              } else {
                                     return `<tr id="receiver">
                                                 <td>
-                                                    ${item.data} <a href="media/${item.data}" download><i class="fa-regular fa-circle-down fa-lg" style="color: #0f0f0f;"></i></a>  <br>
+                                                    ${item.data} <a href="/media/${item.data}" download><i class="fa-regular fa-circle-down fa-lg" style="color: #0f0f0f;margin-left:5px;"></i></a>  <br>
                                                     <small style='float:left;'>${jsdatetime.getHours()}:${jsdatetime.getMinutes()}</small>
 
                                                 </td>
