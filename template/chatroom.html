@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>chat|room</title>
+    <!-- <link rel="stylesheet" href="{% static 'style.css' %}"> -->
+    
+</head>
+<body>
+    <div class="container">
+        <div id="users">
+            <ul>
+                {% for users in users %}
+                <a href="{% url 'chat_room' receiver=users.id %}"><li id="userlist">{{users.username}}</li><span></span></a>
+                {% endfor %}
+            </ul>
+        </div>
+        <div id="chatroom">
+            <div id="receiver-profile">
+                <div id="img">
+                    <img src="" alt="picture">
+                </div>
+                <div id="name">
+                    <h3>{{receiver.username}}</h3>
+
+                </div>
+            </div>
+            <div class="message">
+                <!-- {% for message in message %}
+                    {% if message.sender == request.user %}
+                    <ul id="sender" style="text-align: right;">
+                        <li>
+                            Me:{{message.message}}
+                        </li>
+                    </ul>
+                    {% else %}
+                    <ul id="receiver" style="text-align: left;">
+                        <li>{{message.sender}}::{{message.message}}</li>
+                    </ul>
+                    {% endif %}
+                {% endfor %}         -->
+                <table class="table" style="width: 100%;position: relative;;">
+                    <tbody id='chat-body'>
+                        {% for message in message %}
+                        {% if message.sender == request.user %}
+                        <tr id="sender" style="width: 100%">
+                            <td >
+                                <p style="float: right;">
+                                    {{message.message}}
+                                    <small>
+                                        {{message.timestamp|time:'H:i'}}
+                                    </small>
+                                </p>
+                                
+                            </td>
+                        </tr>
+                        {% else %}
+                        <tr id="receiver"  >
+                            <td >
+                                <p style="float: left;">
+                                    <small>
+                                        {{message.timestamp|time:'H:i'}}
+                                    </small>
+                                   {{message.message}}
+                                </p>
+                            </td>
+                        
+                        </tr>
+                        {% endif %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+                <div id="textbox">
+                    <form action="">
+                        <input type="hidden" id="sender_username" name="sender" value="{{sender.username}}">
+                        <input type="hidden"  id="receiver_username" name="receiver" value="{{receiver.username}}">
+                        <input type="text" id="input" name="message" placeholder="Enter Message">
+                        <button id="subbtn">send</button>
+                    </form>
+                </div>
+               
+        </div>
+        
+        </div>
+    </div>
+    {{ sender.id|json_script:"sender_id"}}
+    {{ receiver.id|json_script:"receiver_id"}}
+    <script>
+        let sender_id=JSON.parse(document.getElementById('sender_id').textContent)
+        let receiver_id=JSON.parse(document.getElementById('receiver_id').textContent)
+
+
+        console.log(sender_id,receiver_id)
+        let sender_username=document.getElementById('sender_username').value
+        let receiver_username=document.getElementById('receiver_username').value
+
+        //websocket connection
+
+        const chatsocket=new WebSocket('ws://'+window.location.host+'/ws/chatroom/'+receiver_id+'/')
+
+        //websocket disconnect error
+
+        chatsocket.onclose=()=>{
+            console.log("websocket onclose")
+        }
+
+        //when message occure in websocket to display the message
+        
+        chatsocket.onmessage=(e)=>{
+            const time=new Date()
+            const hours=time.getHours()
+            const minute=time.getMinutes()
+            const data=JSON.parse(e.data)
+            console.log(data.sender,data.receiver,data.message)
+            if( data.sender == sender_username ){
+                document.querySelector('#chat-body').innerHTML += `<tr>
+                                                                <td>
+                                                                <p style="float:right;background-color:white;padding:1rem;border-radius: 15px 15px 0px 15px;margin-bottom: 2px;">${data.message}<small>
+                                                                    ${hours}:${minute}
+                                                                </small></p>
+                                                                
+                                                                </td>
+                                                            </tr>`
+            }else{
+                document.querySelector('#chat-body').innerHTML += `<tr id=row2>
+                                                                        <td>
+                                                                        <p style="float:left;background-color:white;padding:1rem;border-radius: 0px 15px 15px 15px;margin-bottom: 2px;"><small>
+                                                                    ${hours}:${minute}
+                                                                </small>${data.message}</p>
+                                                                        </td>
+                                                                    </tr>`
+            }
+            scrolldown()
+
+
+        }
+
+        //send input message to the websocket
+
+        let input=document.getElementById('input')
+        let btn=document.getElementById('subbtn')
+        input.focus()
+        btn.addEventListener('click',(e)=>{
+            e.preventDefault()
+            const input_message=input.value
+
+            chatsocket.send(JSON.stringify({
+                'message':input_message,
+                'sender':sender_username,
+                'receiver':receiver_username
+            }))
+
+            input.value=''
+        })
+
+        function scrolldown(){
+            const scrollElement=document.querySelector('.message')
+            scrollElement.scrollTop=scrollElement.scrollHeight
+        }
+    </script>
+</body>
+</html>

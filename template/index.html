@@ -1,0 +1,711 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    {% load static %}
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" integrity="sha512-Kc323vGBEqzTmouAECnVceyQqyqdsSiqLQISBL29aUW4U/M7pSPA/gEUZQqv1cwx4OnYxTxve5UMg5GT6L4JJg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, interactive-widget=resizes-content">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,100;0,300;0,400;0,700;0,900;1,100;1,300;1,400;1,700;1,900&family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap" rel="stylesheet">
+    <title>Chatapp</title>
+    <link rel="stylesheet" href="{% static 'styles.css' %}">
+</head>
+<body>
+    <div class="container">
+        {% csrf_token %}
+        <div id="Myprofile">
+            <div>
+                <h2>FunChat</h2>
+            </div>
+            <div id="current_user_menus">
+                <ul>
+                    <li>
+                        <a href="{% url 'logout' %}" id="logout">Logout</a>
+                    </li>
+                    <li>
+                        <i class="fa-solid fa-circle-chevron-down fa-lg" style="color: #0d0d0d;"></i>                
+                    </li>
+                    <li></li>
+                    <li></li>
+                </ul>
+            </div>           
+        </div>
+        <div id="UsersList">
+            <div id="Search">
+                <input type="search" placeholder="Let's Find">
+            </div>
+           
+            <div id="Users">
+                <ul>
+                    {% for user in users %}
+                    <li id="chatusers" value="{{user.id}}" onclick="websocket('{{user.id}}')">
+                        <div id="pro">
+                            <img src="{% static 'img.jpg' %}" width="40" height="40" alt="pic">
+                        </div>
+                        <div id="status">
+                            <p>{{ user.username }}</p> 
+                            <small id="onlineindicator"></small>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div id="ChatRoom">
+  
+            
+        </div>
+    </div>
+    {{ current_user.id |json_script:"current_user"}}
+    <script type="text/javascript">
+
+        let mainsocket;
+        let user=JSON.parse(document.getElementById('current_user').textContent)
+
+
+        window.addEventListener("beforeunload",(e)=>{
+            // e.preventDefault();
+            mainsocket.send(JSON.stringify({
+                'type':'user',
+                'user':user,
+                'status':false
+            }))
+            
+        });
+
+
+        window.addEventListener('load',(e)=>{
+            if(navigator.onLine){
+                MainConnection()
+            }
+         
+        })
+        window.addEventListener("online",(e)=>{
+            MainConnection()
+            
+        })
+        window.addEventListener("offline",(e)=>{
+            mainsocket.send(JSON.stringify({
+                'type':'user',
+                'user':user,
+                'status':false
+            }))
+       
+        })
+        function Network(){
+
+            let network=window.location.href
+            
+            if(network==='https://deploy0-oe5t.onrender.com/'){
+                return 'deploy0-oe5t.onrender.com'
+            }
+            else if(network==='https://deploy0-production.up.railway.app/'){
+                return 'wss://deploy0-production.up.railway.app'
+            }
+            else{
+                return 'ws://127.0.0.1:8000'
+            }
+        }
+
+        function MainConnection(){
+
+            let Mynetwork=Network()
+
+            if(mainsocket){
+                mainsocket.close()
+            }
+
+            mainsocket=new WebSocket(Mynetwork+'/ws/mainsocket/')
+
+            mainsocket.onopen=()=>{
+                console.log('main socket connected')
+                mainsocket.send(JSON.stringify({
+                    'type':'user',
+                    'user':user,
+                    'status':true
+                }))
+                UnreadStatus()
+            }
+
+            mainsocket.onclose=()=>{
+                console.log('main socket disconnected')
+            }
+
+            mainsocket.onmessage=(e)=>{
+               
+            
+            }
+        }
+
+            let token = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+            let counts={}
+            
+            function UnreadStatus(){
+                let chatusers=document.querySelectorAll('#chatusers')
+
+                    fetch(window.location.href+'unreadmessages/',{
+                        method:'POST',
+                        headers:{
+                            'Content-Type':'application/json',
+                            'X-CSRFToken': token
+                        }
+                    })
+                    .then(res=>res.json())
+                    .then(data=>{
+                        console.log(data)
+                        data.forEach(item=>{
+                            
+                            if (counts[item.sender_id]===undefined){
+                                counts[item.sender_id]=1
+                            }
+                            else{
+                                counts[item.sender_id]+=1
+                            }
+                        })
+                        console.log(counts)
+                        let small=document.createElement('small')
+                        for(let [key,val] of Object.entries(counts)){
+                            chatusers.forEach(ele=>{
+                                if(ele.getAttribute('value')===key){
+                                    small.textContent=val
+                                    small.className="unread"
+                                    ele.appendChild(small)
+                                }
+                             
+                            })
+                    
+                        }
+                    })
+                
+            }
+        
+
+   
+
+            let chatsocket=null;
+            let currentdata=new Date()
+            
+            function websocket(receiver_id){
+                
+                let Mynetwork=Network()
+
+                if (chatsocket){
+                    chatsocket.close()
+                }
+
+                chatsocket=new WebSocket(Mynetwork+'/ws/chatroom/'+receiver_id+'/')
+                
+            
+                chatsocket.onopen=()=>{
+                        MessageView(receiver_id);
+
+                    
+                };
+                chatsocket.onclose=()=>{
+                    console.log("websocket onclose")
+
+                }
+
+                //when message occure in websocket to display the message
+                
+                chatsocket.onmessage=(e)=>{
+                    const data=JSON.parse(e.data)
+                    const pro=document.querySelector('#indicator')
+                    const receivernames=document.getElementById("receiver_names").getAttribute('value')
+                    let span=document.createElement('span')
+                    let sender_id=document.getElementById('sender_id')
+                    let receiver=document.getElementById('receiver_id')
+                    let indicator=document.getElementById('indicator')
+                    if (data.type==="message"){
+                        if (receiver.getAttribute('value')==receiver_id){
+                            MarkRead(user)
+                            if( data.sender == sender_id.getAttribute('value') ){
+                                document.querySelector('tbody').innerHTML += `<tr id="sender">
+                                                                                <td>
+                                                                                    ${data.message} <br>
+                                                                                    <small style='float:right;'>${currentdata.getHours()}:${currentdata.getMinutes()}</small>
+                                                                                </td>
+                                                                            </tr>`
+                            }else{
+                                document.querySelector('tbody').innerHTML += `<tr id="receiver">
+                                                                                        <td>
+                                                                                            ${data.message} <br>
+                                                                                            <small style='float:left;'>${currentdata.getHours()}:${currentdata.getMinutes()}</small>
+
+                                                                                        </td>
+                                                                                    </tr>`
+                            }
+                        }
+                        scrolldown();
+                    }
+                    else if(data.type==="typing"){
+                        if(data.type_icon_receiver!==receivernames){
+                            if(data.bool){
+                                pro.textContent=""
+                                pro.textContent="Typing..."
+                            }
+                            else{
+                                Status(receiver_id)
+                            }
+                        }
+                    }
+                    else if(data.type==='files'){
+                        if (receiver.getAttribute('value')==receiver_id){
+                            MarkRead(user)
+                            if( data.sender == sender_id.getAttribute('value') ){
+                                document.querySelector('tbody').innerHTML += `<tr id="sender">
+                                                                                <td>
+                                                                                    ${data.file} <a href="media/${data.file}" download><i class="fa-regular fa-circle-down fa-lg" style="color: #0f0f0f;margin-left:5px;"></i></a>  <br>
+                                                                                    <small style='float:right;'>${currentdata.getHours()}:${currentdata.getMinutes()}</small>
+                                                                                </td>
+                                                                            </tr>`
+                            }else{
+                                document.querySelector('tbody').innerHTML += `<tr id="receiver">
+                                                                                    <td>
+                                                                                        ${data.file}  <a href="media/${data.file}" download><i class="fa-regular fa-circle-down fa-lg" style="color: #0f0f0f;margin-left:5px;"></i></a> <br>
+                                                                                        <small style='float:left;'>${currentdata.getHours()}:${currentdata.getMinutes()}</small>
+
+                                                                                    </td>
+                                                                                </tr>`
+                            }
+                        }
+                        scrolldown();
+                    }
+
+
+                }  
+
+                
+            }
+            function scrolldown(){
+                const scrollElement=document.querySelector('#ChatArea')
+                scrollElement.scrollTop=scrollElement.scrollHeight
+            }
+
+
+            async function MessageView(receiver_id){
+            
+                await fetch(window.location.href+'chatroom/'+receiver_id+'/',{
+                    method: 'GET',
+                })
+                .then(res=>res.json())
+                .then(data=>{
+                
+                    const msg=data.message
+                    const files=data.files
+                    let chat = document.getElementById('ChatRoom');
+
+                    let messagesHtml = msg.map(item => {
+                        console.log(item)
+                        let mytime=item.timestamp
+                        let jsdatetime=new Date(mytime)
+                        let currentmessagedate=jsdatetime.getDay()
+                        if(item.message){
+
+                            if (item.sender_id == data.sender) {
+                                return `    
+                                            <tr id="sender">
+                                                <td id="rows">
+                                                    ${item.message} <br>
+                                                    <small style='float:right;'>${jsdatetime.getHours()}:${jsdatetime.getMinutes()}</small>
+
+                                                </td>
+                                            </tr>`;
+                                } else {
+                                    return `<tr id="receiver">
+                                                <td>
+                                                    ${item.message} <br>
+                                                    <small style='float:left;'>${jsdatetime.getHours()}:${jsdatetime.getMinutes()}</small>
+
+                                                </td>
+                                            </tr>`;
+                                }
+                        }
+                        if(item.data){
+                            if (item.sender_id == data.sender) {
+                                return `    
+                                            <tr id="sender">
+                                                <td id="rows">
+                                                    ${item.data} <a href="media/${item.data}" download><i class="fa-regular fa-circle-down fa-lg" style="color: #0f0f0f;margin-left:5px;"></i></a> <br>
+                                                    <small style='float:right;'>${jsdatetime.getHours()}:${jsdatetime.getMinutes()}</small>
+
+                                                </td>
+                                            </tr>`;
+                             } else {
+                                    return `<tr id="receiver">
+                                                <td>
+                                                    ${item.data} <a href="media/${item.data}" download><i class="fa-regular fa-circle-down fa-lg" style="color: #0f0f0f;"></i></a>  <br>
+                                                    <small style='float:left;'>${jsdatetime.getHours()}:${jsdatetime.getMinutes()}</small>
+
+                                                </td>
+                                            </tr>`;
+                                }
+                        }
+                                   
+                    }).join(''); 
+               
+                    let chatbox=`<div id="ReceiverPofile">
+                                    <div id="recflx">
+                                        <div id="ChatusersMenu">
+                                            <a href='{% url 'index' %}' id="back"><i class="fa-solid fa-arrow-left fa-lg" style="color: #04070c;"></i></a>  
+                                        </div>
+                                        <div id="ProfileImage">
+                                            <img src="{% static 'img.jpg' %}" width="40" height="40" alt="pic" width="40" height="40">
+                                        </div>
+                                    </div>
+                                    <div id="ReceiverName">
+                                        <h3 id="receiver_names" value='${data.receiver_id}'>${data.receiver_name}</h3>
+                                        <small id="indicator"></small>
+                                    </div>
+                                    <div id="ReceiverSettings">
+                                        <i class="fa-solid fa-ellipsis-vertical fa-lg" style="color: #080808;" id="ReceiverMenuIcon"></i>
+                                            <div id="ReceiverMenus" class='hidden'>
+                                            <div>
+                                                <ul>
+                                                    <li>
+                                                        <button>
+                                                            View Profile
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button>
+                                                            Report
+                                                        </button>
+                                                    </li>
+                                                    <li>
+                                                        <button>
+                                                            Block
+                                                        </button>
+                                                    </li>
+                                                    <li id='clearchat'>
+                                                        <button >
+                                                            Clear Chat
+                                                        </button>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div id="ChatArea">
+                                        <table>
+                                            <tbody>
+                                                ${messagesHtml}
+                                            </tbody>
+                                        </table>
+            
+                                </div>
+                                
+                                <div id="InputBox">
+                                    <div id="Uploaddata" class="uphide">
+                                        <div>
+                                            <input type='file' id="filedata" class='file'>
+                                        </div>
+                                        <div>
+                                            <i class="fa-solid fa-file fa-lg" style="color: #070808;" id='sendfile'></i>
+                                            <small>File</small>
+                                        </div>                                       
+                                    </div>
+                                    
+                                    <div id="Textbox">
+                                        <textarea name="" id="input"  placeholder="Enter Your Message"></textarea>
+                                        <input type='text' id="sender_id" value='${data.sender}' hidden>
+                                        <input type='text' id="receiver_id" value='${data.receiver_id}' hidden>
+                                        <div id="Sendbtn">
+                                            <i class="fa-solid fa-paperclip fa-lg" style="color: #020203;" id="upload"></i>
+                                            <i class="fa-solid fa-microphone fa-lg" style="color: #080808;"></i>
+                                            <i class="fa-regular fa-paper-plane fa-lg" style="color: #050505;" id="send" class="sendhidden"></i>
+                                        </div>
+                                    </div>                        
+                                </div>`
+                    
+                    chat.innerHTML = chatbox;
+                    MarkRead(data.sender)
+
+                    Status(receiver_id)
+                    let datatype='message';
+
+
+                        let input=document.getElementById('input')
+                        let btn=document.getElementById('send')
+                        btn.addEventListener("click",(e)=>{
+                            if(datatype==='message'){
+                                console.log('message send')
+                                e.preventDefault();
+                                SendMessage(data.sender,input.value,receiver_id)
+                            }
+                        })
+                    
+
+                    let uploadbtn=document.getElementById('upload')
+                    let upload=document.getElementById('Uploaddata')
+                    uploadbtn.addEventListener('click',(e)=>{   
+                        upload.classList.toggle('show')
+                    })
+
+                    document.addEventListener('click', function(event) {
+                        if (!uploadbtn.contains(event.target) && !upload.contains(event.target)) {
+                            upload.classList.remove('show');  
+                        }
+                    });
+
+                    let sendfile=document.getElementById('sendfile')
+                    let file=document.getElementById('filedata')
+                    sendfile.addEventListener('click',()=>{
+                        datatype='file'
+                        console.log(datatype)
+                        let file=document.getElementById('filedata')
+                        file.click()
+                        file.addEventListener('change',(e)=>{
+                            console.log(document.getElementById('send'))
+                            upload.classList.remove('show');  
+                            const files=file.files[0]
+                            input.value=files.name
+
+                            const render=new FileReader()
+
+                            btn.addEventListener('click',(e)=>{
+                                if(datatype==='file'){
+                                    console.log('file send')
+                                    render.onload=function(event){
+
+                                        const filedata=event.target.result
+
+                                        chatsocket.send(JSON.stringify({
+                                            'type':'File',
+                                            'file': files.name,
+                                            'filedata': filedata,
+                                            'sender': data.sender,
+                                            'receiver':receiver_id
+                                        }))
+                                        input.value=''
+                                        datatype='message'
+                                    }
+
+                                    render.readAsDataURL(files)
+                                }
+                            })
+                            
+                        })
+                    })
+
+                  
+                    TypingIndicator();
+                    ReceiversMenus(receiver_id)
+
+                    let clearchat=document.getElementById('clearchat')
+                    clearchat.addEventListener('click',(e)=>{
+                        ClearChats(receiver_id)
+                    })
+                    
+                });
+
+            };
+           
+
+            function SendMessage(data,input,receiver_id){
+                //send input message to the websocket    
+                    let inp=document.getElementById('input')
+            
+                    if(inp.value!==""){
+
+                        chatsocket.send(JSON.stringify({
+                            type:'message',
+                            message:input,
+                            sender: data,
+                            receiver:receiver_id
+                        }))
+
+                        inp.value=''
+                    }
+                    else{
+                        return
+                    }
+                    inp.focus()
+
+            
+            }
+            function Send_Files(){
+                //send input message to the websocket    
+                let file=document.getElementById('filedata')
+                file.click()
+                file.addEventListener('change',(e)=>{
+
+                    console.log(file.files[0])
+                })
+            
+            }
+
+         
+            function TypingIndicator(){
+                let typingTimeout;
+
+                let receiver=document.getElementById('receiver_id').getAttribute('value')
+
+                input.addEventListener('input',(e)=>{
+                    chatsocket.send(JSON.stringify({
+                        type:'typing',
+                        bool:true,
+                        typing_icon_receiver:receiver
+                    }));
+
+                    clearTimeout(typingTimeout);
+
+                    typingTimeout = setTimeout(() => {
+                        chatsocket.send(JSON.stringify({
+                            type: 'typing',
+                            bool: false,
+                            typing_icon_receiver:receiver
+
+                        }));
+                    }, 1000)
+                });
+            }   
+
+            // function ReceiverMenus(){
+                
+
+                        
+                            
+
+            // }
+
+
+            function ReceiversMenus(receiver_id){
+
+                let ReceiverMenu=document.getElementById('ReceiverMenus')
+                let  ReceiverIcon=document.getElementById('ReceiverMenuIcon')
+                ReceiverIcon.addEventListener('click',(e)=>{
+                    e.preventDefault()
+                    ReceiverMenu.classList.toggle('visible')
+                })
+                document.addEventListener('click', function(event) {
+                    if (!ReceiverIcon.contains(event.target) && !ReceiverMenu.contains(event.target)) {
+                        ReceiverMenu.classList.remove('visible');  
+                    }
+                });
+                
+
+            }
+
+            function ClearChats(receiver_id){
+                console.log('triggered')
+                let token = document.querySelector('input[name="csrfmiddlewaretoken"]').value;
+                let clearchat=document.getElementById('clearchat')
+                const response=fetch(window.location.href+'clearchat/'+receiver_id+'/',{
+                    method:'POST',
+                    headers:{
+                        'Content-Type':'application/json',
+                        'X-CSRFToken': token
+                    }
+                })
+                console.log(response.status)
+                MessageView(receiver_id)
+                
+            }
+
+
+            function Status(receiver_id){
+                let indicator=document.getElementById('indicator')
+                fetch(window.location.href+'status/'+receiver_id+'/',{
+                    method:'GET',
+                    headers:{
+                        'Content-Type':'application/json'
+                    }
+                })
+                .then(res=>res.json())
+                .then(data=>{
+                    data.map(item=>{
+                        let lastseen=new Date(item.timestamp)
+                        if(item.status){
+                            indicator.textContent=""
+                            indicator.textContent="online"
+                        }
+                        else{
+                            indicator.textContent=`Last seen ${lastseen.getDate()} ${lastseen.getHours()}:${lastseen.getMinutes()}`
+                        }
+                    })
+                })
+            }
+
+
+            function MarkRead(id){
+                console.log(id)
+                fetch(window.location.href+'markasread/'+id+'/',{
+                    method:'POST',
+                    headers:{
+                        'Content-Type':'application/json',
+                        'X-CSRFToken':token
+                    }
+                })
+                .then(res=>res.json())
+                .then(data=>{
+                    console.log(data.status)
+                    
+                })
+            }
+
+            function user_click(){
+
+                const body=document.querySelector('body')
+                if (body.clientWidth<=600){
+                    const active_users=document.querySelectorAll('#Users li')
+                        active_users.forEach(item=>{
+                            item.addEventListener('click',(e)=>{
+                                document.getElementById('Myprofile').style.display="none"
+                                document.getElementById('UsersList').style.display="none"
+                                document.querySelector('#ChatRoom').style.display="block"
+                                document.querySelector('#ChatRoom').style.width="100%"
+                                document.querySelector('#ChatRoom').style.height="100svh"
+                                document.querySelector('.container').style.margin="0rem"
+                                document.querySelector('#ChatRoom').style.padding="0rem"
+                                document.querySelector('#ChatRoom').style.display="flex"
+                                document.querySelector('#ChatRoom').style.borderRadius ="0"
+                                document.querySelector('#ChatRoom').style.flexdirection="column"
+
+
+
+
+
+            
+            
+                            })
+                        })
+                }
+            }
+            user_click()
+
+
+         
+        // function search_users(){
+        //     const user_name=document.getElementById('search')
+        //     const user_list=document.getElementById('search_users')
+        //     fetch('http://window.location.href/search/',{
+        //         method: 'GET',
+        //     })
+        //     .then(res=>res.json())
+        //     .then(data=>{
+        //         data.map(item=>{
+        //             user_name.addEventListener("input",(e)=>{
+        //                 if(e.target.value==item.username){
+        //                     let find_user=`<div id="users"  value="${item.id}" onclick="websocket('${item.id}')">
+        //                                             <img src="{% static 'simple-flat-isolated-people-icon-free-vector.jpg' %}" alt="receiver profile">
+        //                                             <div value="${item.id}">${ item.username }</div>
+        //                                         </div>`
+        //                     user_list.innerHTML=find_user
+        //                     user_click()
+
+        //                 }
+        //             })
+        //         })
+                
+        //     })
+        
+        // }
+        // search_users();
+
+    </script>
+</body>
+</html>

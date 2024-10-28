@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% load static %}
+<head>
+    <meta charset="UTF-8">
+    <!-- <meta name="viewport" content="width=device-width, initial-scale=1.0"> -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <link rel="stylesheet" type="text/css" href="{% static 'style.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>Chatapp</title>
+</head>
+<body>
+        <div class="main">
+            <div class="user-list" id="user-list">
+                <div class="user-logout">
+                    <a href="{% url 'logout' %}" id="logout"><button>Logout</button></a>
+                </div>
+                <div class="search_bar">
+                    <input type="search" id="search" name="search-bar" placeholder="Let's Find">
+                </div>
+                <div id="search_users">
+                    {% for user in users%}
+                    <div id="users"  value="{{user.id}}" onclick="websocket('{{user.id}}')">
+                        <img src="{% static 'simple-flat-isolated-people-icon-free-vector.jpg' %}" alt="receiver profile">
+                        <div value="{{user.id}}">{{ user.username }}</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="chat-box" id="togg">
+                <!-- <h1 style="position:absolute; top:50%; left: 50%;transform: translate(-20%,-50%);font-weight: 600;">Welcome to Funchat <br> let's start fun with your friends</h1> -->
+            </div>
+        </div>
+    <script>
+        let chatsocket=null;
+        function websocket(receiver_id){
+
+            if (chatsocket){
+                chatsocket.close()
+            }
+
+            chatsocket=new WebSocket('ws://127.0.0.1:8000/ws/chatroom/'+receiver_id+'/')
+            
+          
+            chatsocket.onopen=(async ()=>{
+                
+                await fetch('http://127.0.0.1:8000/chatroom/'+receiver_id+'/',{
+                            method: 'GET',
+                        })
+                        .then(res=>res.json())
+                        .then(data=>{
+                            const msg=data.message
+                            let chat = document.getElementById('togg');
+                            let messagesHtml = msg.map(item => {
+                                if (item.sender_id == data.sender) {
+                                    return `<tr id="sender">
+                                                <td>
+                                                    <p style="float: right;">
+                                                        ${item.message}
+                                                        <small></small>
+                                                    </p>
+                                                </td>
+                                            </tr>`;
+                                } else {
+                                    return `<tr id="receiver">
+                                                <td>
+                                                    <p style="float: left;">
+                                                        <small></small>
+                                                        ${item.message}
+                                                    </p>
+                                                </td>
+                                            </tr>`;
+                                }
+                            }).join(''); // Join the array elements into a single string
+
+                            let chatbox = `<div class="chatroom">
+                                                <div class="profile">
+                                                    <div id='col1'>
+                                                        <a href='{% url 'index' %}' id="back"><i class="fa-solid fa-arrow-left fa-lg" style="color: #04070c;"></i></a>
+                                                        <img src="{% static 'simple-flat-isolated-people-icon-free-vector.jpg' %}" alt="receiver_profile">
+                                                    </div>
+                                                    <div id='col2'>
+                                                        <h3 id="receiver_names" value='${data.receiver_id}'>${data.receiver_name}</h3>
+                                                        <small id="typing_indicator" style='display:none;'>Typing...</small>
+                                                    </div>
+                                                </div>
+                                                <div class="message">
+                                                    <table class="table">
+                                                        <tbody id='chat-body'>
+                                                            ${messagesHtml}
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <div class="post-box">
+                                                    <i class="fa-solid fa-paper-plane fa-lg" style="color: black;" id="send-btn"></i>
+                                                    <textarea  id="input" name="msg" placeholder="Enter Your Message"></textarea>
+                                                    <input type='text' id="sender_id" value='${data.sender}' hidden>
+                                                    <input type='text' id="receiver_id" value='${data.receiver_id}' hidden>
+                                                </div>
+                                            </div>`;
+
+                            chat.innerHTML = chatbox;
+
+                            
+                            // let chat=document.getElementById('togg')
+                            // let chatbox=`<div class="chatroom">
+                            //                         <div class="profile">
+                            //                             <a href='{% url 'index' %}' id="back"><i class="fa-solid fa-arrow-left fa-lg" style="color: #04070c;"></i></a>
+                            //                             <img src="{% static 'simple-flat-isolated-people-icon-free-vector.jpg' %}" alt="receiver_profile" >                                     
+                            //                             ${data.receiver_name}
+                            //                         </div>
+                            //                         <div class="message">
+                            //                             <table class="table">
+                            //                                 <tbody id='chat-body'>
+                            //                                     ${msg.map(item=>`
+                            //                                         ${ (item.sender_id == data.sender) ?
+                            //                                             `<tr id="sender">
+                            //                                                 <td >
+                            //                                                     <p style="float: right;">
+                            //                                                         ${ item.message }
+                            //                                                         <small>
+                                                                                        
+                            //                                                         </small>
+                            //                                                     </p>
+                                                                            
+                            //                                                 </td>
+                            //                                             </tr>`
+                            //                                         :
+                            //                                             `<tr id="receiver">
+                            //                                                 <td >
+                            //                                                     <p style="float: left;">
+                            //                                                         <small>
+                            //                                                         </small>
+                            //                                                     ${ item.message }
+                            //                                                     </p>
+                            //                                                 </td>
+                                                                        
+                            //                                             </tr>`
+                            //                                         }`
+                                                                
+                            //                                     )}
+        
+                            //                                 </tbody>
+                            //                             </table>
+                            //                         </div>
+                            //                         <div class="post-box">
+                            //                             <div>
+                            //                                 <textarea  id="input" name="msg" rows="3" cols="40" placeholder="Enter Your Message"></textarea>
+
+                            //                                 <input type='text' id="sender_id" value='${data.sender}' hidden>
+                            //                                 <input type='text' id="receiver_id" value='${data.receiver_id}' hidden>
+                            //                             </div>
+                            //                             <div>
+                            //                                 <button id="send-btn"><i class="fa-solid fa-paper-plane" style="color: white;"></i></button>\
+                            //                             </div>
+                            //                         </div>
+                            //                     </div>`
+                            // chat.innerHTML=chatbox
+
+                            
+
+                             //send input message to the websocket
+
+                            let input=document.getElementById('input')
+                            let btn=document.getElementById('send-btn')
+                            btn.addEventListener("click",(e)=>{
+                                e.preventDefault();
+                                if(input.value!==""){
+                                        console.log(e.target.key)
+                                        const input_message=input.value
+        
+                                        chatsocket.send(JSON.stringify({
+                                            type:'message',
+                                            message:input_message,
+                                            sender: data.sender,
+                                            receiver:receiver_id
+                                        }))
+        
+                                        input.value=''
+                                }
+                                else{
+                                    return
+                                }
+                                input.focus()
+
+                            })
+                            let typingTimeout;
+
+                            let receiver=document.getElementById('receiver_id').getAttribute('value')
+                            input.addEventListener('input',(e)=>{
+                                chatsocket.send(JSON.stringify({
+                                    type:'typing',
+                                    bool:true,
+                                    typing_icon_receiver:receiver
+                                }));
+                                clearTimeout(typingTimeout);
+                                typingTimeout = setTimeout(() => {
+                                    chatsocket.send(JSON.stringify({
+                                        type: 'typing',
+                                        bool: false,
+                                        typing_icon_receiver:receiver
+
+                                    }));
+                                }, 1000)
+                            });
+
+                            
+                            const backbtn=document.getElementById('back')
+                            backbtn.addEventListener("click",function (e){
+                                // chatsocket.close()
+                                console.log('window changed')
+                            })
+                            
+                            const active_users=document.querySelectorAll('#users')
+                            active_users.forEach(ele=>{
+                                ele.addEventListener('click',(e)=>{
+                                    console.log(e.target.getAttribute('value'))
+                                })
+                            })
+                          
+                           
+                        })
+
+                
+            })();
+            chatsocket.onclose=()=>{
+                 console.log("websocket onclose")
+             }
+
+             //when message occure in websocket to display the message
+             
+             chatsocket.onmessage=(e)=>{
+                //  const time=new Date()
+                //  const hours=time.getHours()
+                //  const minute=time.getMinutes()
+                 const data=JSON.parse(e.data)
+                 console.log(data)
+                 const pro=document.querySelector('#typing_indicator')
+                 const receivernames=document.getElementById("receiver_names").getAttribute('value')
+                 let span=document.createElement('span')
+                 let sender_id=document.getElementById('sender_id')
+                 let receiver=document.getElementById('receiver_id')
+                if (data.type==="message"){
+
+                    if (receiver.getAttribute('value')==receiver_id){
+                        if( data.sender == sender_id.getAttribute('value') ){
+                            document.querySelector('tbody').innerHTML += `<tr id="sender">
+                                                                            <td>
+                                                                            <p>${data.message}<small>
+                                                                            </small></p>
+                                                                            
+                                                                            </td>
+                                                                        </tr>`
+                        }else{
+                            document.querySelector('tbody').innerHTML += `<tr id="receiver">
+                                                                                    <td>
+                                                                                    <p style="float:left"><small>
+                                                                            </small>${data.message}</p>
+                                                                                    </td>
+                                                                                </tr>`
+                        }
+                    }
+                    scrolldown();
+                }
+                else if(data.type==="typing"){
+                    if(data.type_icon_receiver!==receivernames){
+                        if(data.bool){
+                            pro.style.display='block'
+                            pro.style.color='green'
+                        }
+                        else{
+                            pro.style.display='none'
+                        }
+                    }
+                }
+
+             }  
+
+             
+        }
+        function scrolldown(){
+            const scrollElement=document.querySelector('.message')
+            scrollElement.scrollTop=scrollElement.scrollHeight
+        }
+        function user_click(){
+
+            const body=document.querySelector('body')
+            if (body.clientWidth<=500){
+                const active_users=document.querySelectorAll('#users')
+                    active_users.forEach(item=>{
+                        item.addEventListener('click',(e)=>{
+                            document.querySelector('.chat-box').style.display="block"
+                            document.querySelector('.chat-box').style.width="100%"
+                            document.querySelector('.chat-box').style.flex="none"
+                            document.getElementById('user-list').style.display="none"
+        
+        
+                        })
+                    })
+            }
+        }
+             user_click()
+        
+    function search_users(){
+        const user_name=document.getElementById('search')
+        const user_list=document.getElementById('search_users')
+        fetch('http://127.0.0.1:8000/search/',{
+            method: 'GET',
+        })
+        .then(res=>res.json())
+        .then(data=>{
+            data.map(item=>{
+                user_name.addEventListener("input",(e)=>{
+                    if(e.target.value==item.username){
+                        let find_user=`<div id="users"  value="${item.id}" onclick="websocket('${item.id}')">
+                                                <img src="{% static 'simple-flat-isolated-people-icon-free-vector.jpg' %}" alt="receiver profile">
+                                                <div value="${item.id}">${ item.username }</div>
+                                            </div>`
+                        user_list.innerHTML=find_user
+                        user_click()
+
+                    }
+                })
+            })
+            
+        })
+      
+    }
+    search_users();
+    </script>
+</body>
+</html>

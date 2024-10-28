@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="{% static 'style.css' %}">
+    <title>SignIn</title>
+</head>
+<body>
+    <div class="signin">
+        <form action="" method="post" autocomplete="off">
+            {% csrf_token %}
+            <div class="errors">
+                {% if messages %}
+                {% for message in messages %}
+                        <small id="error">{{ message }}</small>
+                {% endfor %}
+                {% endif %}
+            </div>
+            <div>
+                <input type="text" name="username" id="username" placeholder="Username">
+                <small id="name_error"></small>
+            </div>
+           
+            <div>
+                <input type="password" name="password" id="password" placeholder="Password">
+            </div>
+           
+            <div>
+                <button>SignIn</button>
+            </div>
+            <div>
+                <p>I don't have any Account: <a href="{% url 'signup' %}">Signup</a></p>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

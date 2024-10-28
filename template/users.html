@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+    {% load static %}
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Users</title>
+    <!-- <link rel="stylesheet" href="{% static 'style.css' %}"> -->
+</head>
+<body>
+    <div class="container">
+        <div id="users">
+            <ul>
+                {% for users in users %}
+                <a href="{% url 'chat_room' receiver=users.id %}"><li id="userlist">{{users.username}} </li><span style="background-color: green;color: white;"></span></a>
+                {% endfor %}
+            </ul>
+        </div>
+        <div id="chatroom">
+
+        </div>
+    </div>
+    
+    <script>
+        function userclick(){
+            fetch('/chatroom/'++)
+        }
+        function unread_msgcount(){
+            fetch('/unread_msg/',{
+                method:'GET'
+            })
+            .then(res=>res.json())
+            .then(data=>{
+                let users=document.querySelectorAll('#userlist')
+                data.forEach(value=>{
+                    console.log(value)
+                    let span=document.querySelector('span')
+                    span.innerHTML=""
+                    users.forEach(element => {
+                        if(value.is_read!=NaN){
+                            if(element.textContent == value.sender){
+                                span.innerHTML=value.is_read
+                                element.addEventListener('click',(e)=>{
+                                    span.innerHTML=""
+                                })
+                            }
+                        }
+                        if(value.is_read==undefined){
+                            return false
+                        }
+                       
+                    });
+                })
+                
+            })
+        }
+        setInterval(unread_msgcount,1000)
+
+        async function notification(){
+
+            fetch('/unread_msg/',{
+                method:'GET',
+            })
+            .then(res=>res.json())
+            .then(data=>{
+                data.forEach(value=>{
+                    let users=document.querySelectorAll('#userlist')
+                    users.forEach(element=>{
+                        if(value.sender === element.textContent){
+                            if(value.is_read!=NaN){
+                                const notifications=new Notification(`${value.sender}`,{
+                                    body:`${value.message}`
+
+                                })
+                            }
+                            setTimeout(()=>{
+                                notifications.close()
+                            },10*1000);
+                        }
+                        
+       
+                    })
+                    
+                })
+               
+            })
+            let granted = false;
+
+            if (Notification.permission === 'granted') {
+                granted = true;
+            } else if (Notification.permission !== 'denied') {
+                let permission = await Notification.requestPermission();
+                granted = permission === 'granted' ? true : false;
+            }
+        }
+        notification()
+    </script>
+</body>
+</html>
